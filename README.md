@@ -1,7 +1,7 @@
 # LINEMAP: 
 ### A Temporal Dynamics Framework for Single-Cell Lineage Reconstruction: Integrating Molecular Barcoding and Advanced Machine Learning
 
-### Instruction:
+### 1. Required R packages:
 
 ```
 install.packages("devtools")
@@ -21,7 +21,7 @@ BiocManager::install("Biostrings")
 ```
 
 
-### The command:
+### Pipeline command:
 Rscript data_preprocessing.R <R1_FASTQ> <R2_FASTQ>
 
 ### For sample cases:
