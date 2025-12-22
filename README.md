@@ -32,6 +32,7 @@ In your terminal, run the pipeline command below.
 ```
 Rscript LINEMAP_processing.R <R1_FASTQ> <R2_FASTQ>
 ```
+The final result is in the folder ***result/mutation_network***
 
 ### For sample cases:
 ```
