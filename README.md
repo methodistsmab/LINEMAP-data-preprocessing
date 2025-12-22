@@ -22,7 +22,11 @@ BiocManager::install("Biostrings")
 
 
 ### Pipeline command:
-Rscript data_preprocessing.R <R1_FASTQ> <R2_FASTQ>
+```
+Rscript LINEMAP_processing.R <R1_FASTQ> <R2_FASTQ>
+```
 
 ### For sample cases:
-Rscript data_preprocessing.R samples/sample_R1.fastq.gz samples/sample_R2.fastq.gz
+```
+Rscript LINEMAP_processing.R samples/sample_R1.fastq.gz samples/sample_R2.fastq.gz
+```
