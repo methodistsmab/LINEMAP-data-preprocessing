@@ -30,3 +30,8 @@ Rscript LINEMAP_processing.R <R1_FASTQ> <R2_FASTQ>
 ```
 Rscript LINEMAP_processing.R samples/sample_R1.fastq.gz samples/sample_R2.fastq.gz
 ```
+#### sample data download links:
+```
+https://ibrisk.houstonmethodist.org/LINEMAP/samples/sample_R1.fastq.gz
+https://ibrisk.houstonmethodist.org/LINEMAP/samples/sample_R2.fastq.gz
+```
