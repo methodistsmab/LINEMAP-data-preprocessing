@@ -28,6 +28,7 @@ BiocManager::install("Biostrings")
 
 
 ### Pipeline command:
+In your terminal, run the pipeline command below.
 ```
 Rscript LINEMAP_processing.R <R1_FASTQ> <R2_FASTQ>
 ```
