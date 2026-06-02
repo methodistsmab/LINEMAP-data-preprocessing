@@ -68,50 +68,35 @@ mutation_hgRNA_identify <- function(targets, GuideRNAs, enable_plot = TRUE) {
 
   message("===== Step 5: Mutation evolution network =====")
   message("Constructing the mutation evolution network by collapsing cell-level mutations into alleles and inferring directed ancestral relationships.")
+  message("Step 5 output folder: ", out_dir)
 
 
   for ( target in targets){
     
-    message("\n===== Step5: ", target, " =====")
+    message("\n===== ", target, " =====")
     
 
     cell_level_barcode <- readRDS(file.path(base_dir, target, "cell_level_barcode.rds"))
     stopifnot(is.data.frame(cell_level_barcode))
     
-    data <- cell_level_barcode
-    
-    # ---- (1) filtering / QC ----
-    data <- subset(data, number.of.notinread == 0)
-    data <- subset(data, !is.na(align.short))
-    
-    message("[", target, "] Unique cells: ", nrow(data))
-    
-    # ---- (2) collapse to allele-level ----
-    allele_tbl <-
-      data %>%
-      group_by(read.short, align.short, mutation.report) %>%
-      summarise(n = dplyr::n(), .groups = "drop") %>%
-      as.data.frame()
-    
-    allele_tbl <- allele_tbl[order(allele_tbl$n, decreasing = TRUE), ]
-    message("[", target, "] Collapsed alleles: ", nrow(allele_tbl))
-    
-    # ---- (3) build node table ----
-    # stable unique id
-    allele_tbl$allele_id <- allele_tbl$read.short
+    message("[", target, "] Unique cells before filtering: ", nrow(cell_level_barcode))
 
-    # Your current preference: node = read.short; node1 = mutation.report
-    node <- allele_tbl[, c("allele_id", "read.short", "align.short", "mutation.report", "n")]
-    colnames(node) = c("node", "read.short", "align.short", "mutation.report", "n")
+    # ---- (1-3) filtering / QC and collapse to allele-level ----
+    # Shared with Step 6 transition-matrix estimation.
+    node <- collapse_cell_barcode_to_alleles(
+      cell_level_barcode,
+      GuideRNA = GuideRNAs[[target]]
+    )
+    message("[", target, "] Collapsed alleles: ", nrow(node))
 
     # ---- (4) choose top nodes covering 90% of total reads ----
-    cum_prop <- cumsum(node$cell.number) / sum(node$cell.number)
+    cum_prop <- cumsum(node$n) / sum(node$n)
     idx <- which(cum_prop >= 0.9)
     top_n <- if (length(idx) == 0) nrow(node) else min(idx)
     
     node_top <- node[seq_len(top_n), , drop = FALSE]
     
-    # message("[", target, "] Top nodes covering >=90% counts: ", nrow(node_top))
+    message("[", target, "] Top nodes covering >=90% cells: ", nrow(node_top))
     
     
     # ---- (5) infer directed edges among alleles (mutation.report-level) ----
@@ -144,12 +129,13 @@ mutation_hgRNA_identify <- function(targets, GuideRNAs, enable_plot = TRUE) {
     # ensure per-target output directory exists
     target_dir <- file.path(out_dir, target)
     dir.create(target_dir, showWarnings = FALSE, recursive = TRUE)
+    message("[", target, "] Output folder: ", target_dir)
     
-    saveRDS(node, file.path(target_dir, paste0("node", target, ".rds")))
+    saveRDS(node_top, file.path(target_dir, paste0("node", target, ".rds")))
     saveRDS(edges, file.path(target_dir, paste0("edges", target, ".rds")))
     
     # optional: also save as TSV for inspection
-    write.table(node,
+    write.table(node_top,
                 file = file.path(target_dir, paste0("node", target, ".tsv")),
                 sep = "\t", quote = FALSE, row.names = FALSE)
     write.table(edges,
@@ -192,4 +178,3 @@ mutation_hgRNA_identify <- function(targets, GuideRNAs, enable_plot = TRUE) {
 
 }
   
-

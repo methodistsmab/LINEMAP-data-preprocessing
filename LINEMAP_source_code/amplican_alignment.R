@@ -83,9 +83,8 @@ output_dir <- "result"
 ## Alignment output root
 alignment_root <- file.path(output_dir, "alignment")
 
-print (alignment_root)
-
 dir.create(alignment_root, showWarnings = FALSE, recursive = TRUE)
+message("Step 2 output folder: ", alignment_root)
 
 
 
@@ -94,13 +93,12 @@ for (t in seq(length(targets))){
   message("Processing target: ", targets[t])
   
   target_id <- targets[t]
-  
-  print (paste0("Processing target: ", target_id))
 
   ## Current target label (e.g., "A21" or "B25")
   ## (Assumes you set `target_id` inside the loop)
   alignment_dir <- file.path(alignment_root, target_id)
   dir.create(alignment_dir, showWarnings = FALSE, recursive = TRUE)
+  message("[", target_id, "] Output folder: ", alignment_dir)
   
   ## Combined alignment events TSV (recommended for downstream analysis)
   out_alignment <- file.path(alignment_dir, "alignment_all.tsv")
@@ -132,8 +130,7 @@ for (t in seq(length(targets))){
   ## ----------------------------------------------------------
   
   cell.number <- length(names.cell.barcode)
-  print ("Total cell number:")
-  print (cell.number)
+  message("[", target_id, "] Total cells to process: ", cell.number)
   for (i in seq(cell.number)) {
     
     index.tmp <- which(indexlist == i)
@@ -254,5 +251,3 @@ for (t in seq(length(targets))){
   }
 }
 }
-
-

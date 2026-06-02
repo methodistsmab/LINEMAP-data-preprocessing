@@ -11,8 +11,29 @@
 ## with the local project directory on your system.
 ## ------------------------------------------------------------
 # setwd("/home/yxh/data/LINEMAP")
-print ("Current working directory:")
-getwd()
+
+## ------------------------------------------------------------
+## Load required libraries before printing pipeline messages
+##
+suppressWarnings(suppressPackageStartupMessages({
+  library(ggplot2)
+  library(ShortRead)
+  library("dplyr")
+  library(Biostrings)
+  library(amplican)
+  library("stringr")
+  library('RecordLinkage')
+}))
+
+suppressWarnings(suppressPackageStartupMessages({
+  source("utility_functions.R")
+  source("amplican_alignment.R")
+  source("mutation_annotation.R")
+  source("mutation_hgRNA_identify.R")
+}))
+
+message("Current working directory:")
+message(getwd())
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 2) {
@@ -22,32 +43,18 @@ fq_r1 <- args[1]
 fq_r2 <- args[2]
 
 if (file.exists(fq_r1)){
-  print (paste("R1 FASTQ file found:", fq_r1))
+  message("R1 FASTQ file found: ", fq_r1)
 } else {
   stop (paste("R1 FASTQ file not found:", fq_r1))
 }
 
 if (file.exists(fq_r2)){
-  print (paste("R2 FASTQ file found:", fq_r2))
+  message("R2 FASTQ file found: ", fq_r2)
 } else {
   stop (paste("R2 FASTQ file not found:", fq_r2))
 }
 
-source("utility_functions.R")
-source("amplican_alignment.R")
-source("mutation_annotation.R")
-source("mutation_hgRNA_identify.R")
-
-## ------------------------------------------------------------
-## Load required libraries
-##
-library(ggplot2)
-library(ShortRead)
-library("dplyr")
-library(Biostrings)
-library(amplican)
-library("stringr")
-library('RecordLinkage')
+message("Reading input FASTQ files...")
 
 
 ## ------------------------------------------------------------
@@ -115,10 +122,8 @@ library('RecordLinkage')
 ## Input FASTQ files
 # fq_r2 <- file.path("samples", "sample_R2.fastq.gz")  # sequencing R2
 # fq_r1 <- file.path("samples", "sample_R1.fastq.gz")  # sequencing R1
-
-print ("Filtering FASTQ files...")
-print (paste("Input R2 FASTQ:", fq_r2))
-print (paste("Input R1 FASTQ:", fq_r1))
+message("Input R2 FASTQ: ", fq_r2)
+message("Input R1 FASTQ: ", fq_r1)
 
 ## Output directory (relative to project root)
 output_dir <- file.path(getwd(), "result")
@@ -168,12 +173,6 @@ mutation_annotation(targets, GuideRNAs)
 run_step4_cell_level_barcodes(len_gap = 4)
 
 mutation_hgRNA_identify(targets, GuideRNAs, enable_plot =TRUE)
-
-
-
-
-
-
 
 
 

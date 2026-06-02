@@ -44,6 +44,7 @@ mutation_annotation <- function(targets, GuideRNAs) {
   ## Create a new folder under result/ to store Step 3 outputs
   step3_dir <- file.path("result", "mutation_annotation")
   dir.create(step3_dir, showWarnings = FALSE, recursive = TRUE)
+  message("Step 3 output folder: ", step3_dir)
 
   for (target in targets) {
     
@@ -56,6 +57,7 @@ mutation_annotation <- function(targets, GuideRNAs) {
     ## Output folder for this target
     out_dir <- file.path(step3_dir, target)
     dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+    message("[", target, "] Output folder: ", out_dir)
     
     ## Load alignment table (no header by design)
     cell.read.align <- read.delim(aln_file, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
@@ -102,8 +104,6 @@ mutation_annotation <- function(targets, GuideRNAs) {
       input_alignment_file = aln_file
     )
     saveRDS(meta, file = file.path(out_dir, "meta.rds"))
-    
-    message("Saved mutation_annotation outputs to: ", out_dir)
   }
 }
 

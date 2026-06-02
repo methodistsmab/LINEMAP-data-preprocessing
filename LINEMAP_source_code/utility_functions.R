@@ -14,8 +14,9 @@ filter_fastq_stream <- function(
     verbose_every = 1L
 ) {
   
-  message("===== Step 1: Read filtering =====")
+  message("===== Step 1: FASTQ files filtering =====")
   message("Filtering raw sequencing reads to remove low-quality reads, incomplete alignments, and technical artifacts.")
+  message("Step 1 output folder: ", dirname(fq1_out))
   
   stopifnot(file.exists(fq1_in))
   if (!is.null(fq2_in)) stopifnot(file.exists(fq2_in))
@@ -188,8 +189,14 @@ append_alignment_blocks <- function(aes, cell_id, out_file, group_id = NULL,
                                     max_show = Inf, include_score = FALSE) {
   
   pa <- aes@fwdReads[[1]]  # PairwiseAlignments
-  pat <- as.character(pattern(pa))
-  sub <- as.character(subject(pa))
+  pat <- tryCatch(
+    as.character(pwalign::alignedPattern(pa)),
+    error = function(e) as.character(pwalign::pattern(pa))
+  )
+  sub <- tryCatch(
+    as.character(pwalign::alignedSubject(pa)),
+    error = function(e) as.character(pwalign::subject(pa))
+  )
   sc  <- score(pa)
   
   m <- length(pat)
@@ -751,12 +758,7 @@ compare_cell_read_matrices <- function(mat1,
   ind[ind1 > ind2] <- 1
   ind[ind1 < ind2] <- 2
   
-  if (verbose) {
-    message("Comparison summary:")
-    print(table(ind1, ind2))
-    message("Final label counts:")
-    print(table(ind))
-  }
+  if (verbose) print(table(ind))
   
   return(list(
     label = ind,
@@ -811,6 +813,7 @@ run_step4_cell_level_barcodes <- function(
   
   message("===== Step 4: Cell-level barcode identity =====")
   message("Assigning mutation barcodes to individual cells based on read-level mutation annotations.")
+  message("Step 4 output folder: ", out_dir)
   
   # ---- 1) read per-target read-level matrices ----
   cell.read.matrix <- lapply(targets, function(t) {
@@ -821,13 +824,10 @@ run_step4_cell_level_barcodes <- function(
   m1 <- cell.read.matrix[[targets[1]]]
   m2 <- cell.read.matrix[[targets[2]]]
 
-  print(nrow(m1))
-  print(nrow(m2))
-  
   # ---- 2) per-read target assignment between the two candidates ----
-  res <- compare_cell_read_matrices(m1, m2, len_gap = len_gap)
-  ind <- res$label  # 1 = target1 wins, 2 = target2 wins, 0 = undecided
-  
+  res <- compare_cell_read_matrices(m1, m2, len_gap = len_gap, verbose = FALSE)
+  ind <- res$label  # 1 = targets[1], 2 = targets[2], 0 = unassigned
+
   # ---- 3) split reads by assigned target ----
   reads_1 <- m1[ind == 1, , drop = FALSE]
   reads_2 <- m2[ind == 2, , drop = FALSE]
@@ -837,6 +837,26 @@ run_step4_cell_level_barcodes <- function(
   # ---- 4) per-cell best read selection (cell-level barcode call) ----
   cell_1 <- pick_best_read_per_id(reads_1)
   cell_2 <- pick_best_read_per_id(reads_2)
+
+  count_unique_barcodes <- function(df) {
+    if (nrow(df) == 0L) return(0L)
+    cols <- intersect(c("read.short", "align.short", "mutation.report"), colnames(df))
+    if (length(cols) == 0L) return(0L)
+    nrow(unique(df[, cols, drop = FALSE]))
+  }
+
+  final_counts <- table(factor(ind, levels = c(0, 1, 2)))
+  assignment_summary <- data.frame(
+    assignment = c("unassigned", targets[1], targets[2]),
+    reads = as.integer(final_counts),
+    cells = c(NA_integer_, nrow(cell_1), nrow(cell_2)),
+    unique_cell_barcodes = c(NA_integer_,
+                             count_unique_barcodes(cell_1),
+                             count_unique_barcodes(cell_2)),
+    stringsAsFactors = FALSE
+  )
+  message("Final cell-level barcode summary:")
+  print(assignment_summary, row.names = FALSE)
   
   # ---- 5) build a compact "cell-level barcode table" for downstream Step 5 ----
   # 你可以按需增减字段；这里给出 network 构建最常用的最小集合
@@ -898,6 +918,390 @@ run_step4_cell_level_barcodes <- function(
 
 ################################################# step 5
 
+collapse_cell_barcode_to_alleles <- function(cell_level_barcode,
+                                             GuideRNA = NULL,
+                                             prefer_corrected = TRUE,
+                                             remove_notinread = TRUE) {
+  stopifnot(is.data.frame(cell_level_barcode))
+
+  read_col <- if (isTRUE(prefer_corrected) &&
+                  "mutation.correction1" %in% colnames(cell_level_barcode) &&
+                  "align.correction1" %in% colnames(cell_level_barcode)) {
+    "mutation.correction1"
+  } else if (isTRUE(prefer_corrected) &&
+             "mutation.correction" %in% colnames(cell_level_barcode) &&
+             "align.correction" %in% colnames(cell_level_barcode)) {
+    "mutation.correction"
+  } else {
+    "read.short"
+  }
+
+  align_col <- if (identical(read_col, "mutation.correction1")) {
+    "align.correction1"
+  } else if (identical(read_col, "mutation.correction")) {
+    "align.correction"
+  } else {
+    "align.short"
+  }
+
+  required_cols <- c(read_col, align_col)
+  if (is.null(GuideRNA)) required_cols <- c(required_cols, "mutation.report")
+  missing_cols <- setdiff(required_cols, colnames(cell_level_barcode))
+  if (length(missing_cols) > 0) {
+    stop("cell_level_barcode is missing required columns: ",
+         paste(missing_cols, collapse = ", "))
+  }
+
+  data <- cell_level_barcode
+  data$read.short <- data[[read_col]]
+  data$align.short <- data[[align_col]]
+
+  if (!is.null(GuideRNA)) {
+    data$mutation.report <- vapply(seq_len(nrow(data)), function(i) {
+      res <- make.mutation.report(
+        target.read = data$read.short[[i]],
+        target.align = data$align.short[[i]],
+        GuideRNA = GuideRNA
+      )
+      if (is.null(res)) NA_character_ else res[[2]]
+    }, character(1))
+  }
+
+  if (isTRUE(remove_notinread)) {
+    data <- subset(data, !grepl("notinread", mutation.report, fixed = TRUE) &
+                     !grepl("*", mutation.report, fixed = TRUE))
+  }
+
+  data <- subset(data, !is.na(read.short) & !is.na(align.short) & !is.na(mutation.report))
+
+  if (nrow(data) == 0) {
+    return(data.frame(
+      node = character(0),
+      read.short = character(0),
+      align.short = character(0),
+      mutation.report = character(0),
+      n = integer(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  allele_tbl <-
+    data %>%
+    dplyr::group_by(read.short, align.short, mutation.report) %>%
+    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+    as.data.frame()
+
+  allele_tbl <- allele_tbl[order(allele_tbl$n, decreasing = TRUE), ]
+  allele_tbl$node <- allele_tbl$read.short
+  allele_tbl <- allele_tbl[, c("node", "read.short", "align.short", "mutation.report", "n")]
+  attr(allele_tbl, "read_column_used") <- read_col
+  attr(allele_tbl, "align_column_used") <- align_col
+  allele_tbl
+}
+
+legacy_gap_runs <- function(sequence) {
+  chars <- strsplit(sequence, "", fixed = TRUE)[[1]]
+  ind <- which(chars == "-")
+  if (length(ind) == 0L) return(NULL)
+  breaks <- which(diff(ind) > 1L)
+  cbind(start = c(ind[1L], ind[breaks + 1L]),
+        end = c(ind[breaks], ind[length(ind)]))
+}
+
+legacy_make_mutation_report <- function(target.read, target.align) {
+  if (is.na(target.read) || is.na(target.align)) return(NA_character_)
+  if (nchar(target.read) != nchar(target.align)) return(NA_character_)
+
+  align_runs <- legacy_gap_runs(target.align)
+  read_runs <- legacy_gap_runs(target.read)
+  align_list <- strsplit(target.align, "", fixed = TRUE)[[1]]
+  read_list <- strsplit(target.read, "", fixed = TRUE)[[1]]
+  align_gap <- which(align_list == "-")
+  read_gap <- which(read_list == "-")
+
+  base_number <- rep(0L, nchar(target.align))
+  base_number[which(align_list != "-")] <- seq_len(sum(align_list != "-"))
+
+  report <- ""
+  i <- 1L
+  while (i <= nchar(target.align)) {
+    if (!(i %in% align_gap) && !(i %in% read_gap)) {
+      if (align_list[[i]] != read_list[[i]]) {
+        report <- paste(report, base_number[[i]], "mismatch",
+                        align_list[[i]], read_list[[i]])
+        report <- paste0(report, ";")
+      }
+      i <- i + 1L
+    } else if (i %in% align_gap) {
+      row_index <- which(align_runs[, "start"] %in% i)
+      ins_align <- substr(target.align, align_runs[row_index, "start"],
+                          align_runs[row_index, "end"])
+      ins_read <- substr(target.read, align_runs[row_index, "start"],
+                         align_runs[row_index, "end"])
+      report <- paste(
+        report,
+        paste0(base_number[[i - 1L]], "<",
+               align_runs[row_index, "end"] - align_runs[row_index, "start"] + 1L),
+        "insert", ins_align, ins_read
+      )
+      report <- paste0(report, ";")
+      i <- align_runs[row_index, "end"] + 1L
+    } else if (i %in% read_gap) {
+      row_index <- which(read_runs[, "start"] %in% i)
+      miss_align <- substr(target.align, read_runs[row_index, "start"],
+                           read_runs[row_index, "end"])
+      miss_read <- substr(target.read, read_runs[row_index, "start"],
+                          read_runs[row_index, "end"])
+      report <- paste(
+        report,
+        paste0(base_number[[i]], "-", base_number[[read_runs[row_index, "end"]]]),
+        "miss", miss_align, miss_read
+      )
+      report <- paste0(report, ";")
+      i <- read_runs[row_index, "end"] + 1L
+    }
+  }
+
+  observed_ref <- nchar(target.align) - stringr::str_count(target.align, fixed("-"))
+  if (observed_ref < 23L) {
+    not_in_align <- substr("GTTCCCGTCCAGTAATCGTGGGG", observed_ref + 1L, 23L)
+    report <- paste(
+      report,
+      paste0(observed_ref + 1L, "-23"),
+      "notinread",
+      not_in_align,
+      strrep("*", 23L + stringr::str_count(target.align, fixed("-")) - nchar(target.align))
+    )
+    report <- paste0(report, ";")
+  }
+
+  report
+}
+
+choose_first_existing_column <- function(data, candidates, label) {
+  hit <- candidates[candidates %in% colnames(data)]
+  if (length(hit) == 0L) {
+    stop("Missing ", label, " column. Tried: ", paste(candidates, collapse = ", "))
+  }
+  hit[[1]]
+}
+
+legacy_hgrna_column_set <- function(cell_read) {
+  mutation_col <- choose_first_existing_column(
+    cell_read,
+    c("mutation.correction1", "mutation.correction", "mutation", "read.short"),
+    "mutation"
+  )
+  align_col <- choose_first_existing_column(
+    cell_read,
+    c("align.correction1", "align.correction", "align", "align.short"),
+    "alignment"
+  )
+
+  list(
+    mutation = mutation_col,
+    align = align_col,
+    report = if ("mutation.report" %in% colnames(cell_read)) "mutation.report" else NULL
+  )
+}
+
+legacy_mutation_simplify <- function(cell_read) {
+  cols <- legacy_hgrna_column_set(cell_read)
+
+  mutation_list <- as.character(cell_read[, cols$mutation])
+  align_list <- as.character(cell_read[, cols$align])
+  if (is.null(cols$report)) {
+    ind <- which(substr(mutation_list, 1, 2) == "-T")
+    if (length(ind) > 0L) substr(mutation_list[ind], 1, 2) <- "GT"
+    ind <- which(substr(mutation_list, 1, 3) == "--T")
+    if (length(ind) > 0L) substr(mutation_list[ind], 1, 3) <- "GTT"
+    return(mutation_list)
+  }
+
+  for (i in seq_len(nrow(cell_read))) {
+    base_number <- rep(0L, nchar(align_list[[i]]))
+    align_chars <- strsplit(align_list[[i]], "", fixed = TRUE)[[1]]
+    base_number[which(align_chars != "-")] <- seq_len(sum(align_chars != "-"))
+
+    mutation_item <- strsplit(cell_read[i, cols$report], split = ";",
+                              fixed = TRUE)[[1]]
+    mutation_item <- trimws(mutation_item)
+    mutation_item <- mutation_item[mutation_item != ""]
+    if (length(mutation_item) == 0L) next
+    for (j in seq_along(mutation_item)) {
+      if (grepl("mismatch", mutation_item[[j]], fixed = TRUE)) {
+        item <- strsplit(mutation_item[[j]], "\\s+")[[1]]
+        pos <- suppressWarnings(as.numeric(item[[1]]))
+        if (!is.na(pos) && length(item) >= 3L) {
+          idx <- which(base_number == pos)
+          if (length(idx) == 1L) substr(mutation_list[[i]], idx, idx) <- item[[3]]
+        }
+      }
+    }
+  }
+
+  ind <- which(substr(mutation_list, 1, 2) == "-T")
+  if (length(ind) > 0L) substr(mutation_list[ind], 1, 2) <- "GT"
+  ind <- which(substr(mutation_list, 1, 3) == "--T")
+  if (length(ind) > 0L) substr(mutation_list[ind], 1, 3) <- "GTT"
+  mutation_list
+}
+
+legacy_apply_A21_alignment_rules <- function(d) {
+  rules <- data.frame(
+    align_from = c(
+      "GTTCCCGTCCAGTAATCG-TGGGG",
+      "GTTCCCGTCCAGTAATCG--TGGGG",
+      "GTTCCCGTCCAGTAATCG--TGGGG",
+      "GTTCCCGTCCAGTAATCG---TGGGG",
+      "GTTCCCGTCCAGTAATCG----TGGGG",
+      "GTTCCCGTCCAGTAATCG----TGGGG",
+      "GTTCCCGTCCAGTAATCG-----TGGGG",
+      "GTTCCCGTCCAGTAATCG------TGGGG",
+      "GTTCCCGTCCAGTAATCG-----------TGGGG",
+      "GTTCCCGTCCAGTAATCG---------------TGGGG",
+      "GTTCCCGTCCAGTAATCG---------------------TGGGG",
+      "GTTCCCGTCCAGTAATCGT---GGGG",
+      "GTTCCCGTCCAGTAATCGT---GGGG",
+      "GTTCCCGTCCAGTAATCGT-----GGGG",
+      "GTTCCCGTCCAGTAATCGT-----GGGG",
+      "GTTCCCGTCCAGTAATCGT-----------GGGG",
+      "GTTCCCGTCCAGTAATCGT--------------GGGG",
+      "GTTCCCGTCCAGTAATCGT-----------------GGGG",
+      "GTTCCCGTCCAGTAATCGTG--GGG",
+      "GTTCCCGTCCAGTAATCGTG----GGG",
+      "GTTCCCGTCCAGTAATCGTG-----GGG",
+      "GTTCCCGTCCAGTAATCGTG-----------GGG",
+      "GTTCCCGTCCAGTAATCGTG------------GGG",
+      "GTTCCCGTCCAGTAATCGTGG-----GG",
+      "GTTCCCGTCCAGTAATCGTGG----------GG",
+      "GTTCCCGTCCAGTAATCGTGG----------------GG",
+      "GTTCCCGTCCAGTAATCGTGG----------------GG",
+      "GTTCCCGTCCAGTAATCGTGGG------------G",
+      "GTTCCCGTCCAGTAATCGTGGG---------------G",
+      "GTTCCCGTCCAGTAATCGTGGG----------------G"
+    ),
+    mutation_from = c(
+      "GTTCCCGTCCAGTAATCGGTGGGG",
+      "GTTCCCGTCCAGTAATCGGGTGGGG",
+      "GTTCCCGTCCAGTAATCGCGTGGGG",
+      "GTTCCCGTCCAGTAATCGGCGTGGGG",
+      "GTTCCCGTCCAGTAATCGACGGTGGGG",
+      "GTTCCCGTCCAGTAATCGCCCGTGGGG",
+      "GTTCCCGTCCAGTAATCGCCCAGTGGGG",
+      "GTTCCCGTCCAGTAATCGGGCAAGTGGGG",
+      "GTTCCCGTCCAGTAATCGACGGTTAGTAGTGGGG",
+      "GTTCCCGTCCAGTAATCGGCTGTGGTATATATGTGGGG",
+      "GTTCCCGTCCAGTAATCGGTAGACGGTAGTCCAGTAGAGTGGGG",
+      "GTTCCCGTCCAGTAATCGTTGTGGGG",
+      "GTTCCCGTCCAGTAATCGTCGTGGGG",
+      "GTTCCCGTCCAGTAATCGTATTGTGGGG",
+      "GTTCCCGTCCAGTAATCGTCAAGTGGGG",
+      "GTTCCCGTCCAGTAATCGTTAGATCCAGTTGGGG",
+      "GTTCCCGTCCAGTAATCGTATGCTTATGATTATGGGG",
+      "GTTCCCGTCCAGTAATCGTCTGGTATAGTCCAGAGTGGGG",
+      "GTTCCCGTCCAGTAATCGTGTGGGG",
+      "GTTCCCGTCCAGTAATCGTGACGGGGG",
+      "GTTCCCGTCCAGTAATCGTGAACCGGGG",
+      "GTTCCCGTCC-----TCGTGCGAATCTGGTGGGG",
+      "GTTCCCGTCCAGTAATCGTGTTAGTGTTAGTGGGG",
+      "GTTCCCGTCCAGTAATCGTGGTCCAGGG",
+      "GTTCCCGTCCAGTAATCGTGGTTACTACTAGGG",
+      "GTTCCCGTCCAGTAATCGTGGTTAGGGATAGGGTTAGGG",
+      "GTTCCCGTCCAGTAATCGTGGTTAGGGCTAGGGTTAGGG",
+      "GTTCCCGTCCAGTAATCGTGGGTTAGTAAGTGGGG",
+      "GTTCCCGTCCAGTAATCGTGGGACAGAGAACAGTGGGG",
+      "GTTCCCGTCCAGTAATCGTGGGTAGGGATAGGGTTAGGG"
+    ),
+    align_to = c(
+      "GTTCCCGTCCAGTAATC-GTGGGG",
+      "GTTCCCGTCCAGTAATC--GTGGGG",
+      "GTTCCCGTCCAGTAATC--GTGGGG",
+      "GTTCCCGTCCAGTAATC---GTGGGG",
+      "GTTCCCGTCCAGTAATC----GTGGGG",
+      "GTTCCCGTCCAGTAATC----GTGGGG",
+      "GTTCCCGTCCAGTAATC-----GTGGGG",
+      "GTTCCCGTCCAGTAATC------GTGGGG",
+      "GTTCCCGTCCAGTAATC-----------GTGGGG",
+      "GTTCCCGTCCAGTAATC---------------GTGGGG",
+      "GTTCCCGTCCAGTAATC---------------------GTGGGG",
+      "GTTCCCGTCCAGTAATC---GTGGGG",
+      "GTTCCCGTCCAGTAATC---GTGGGG",
+      "GTTCCCGTCCAGTAATC-----GTGGGG",
+      "GTTCCCGTCCAGTAATC-----GTGGGG",
+      "GTTCCCGTCCAGTAATCG-----------TGGGG",
+      "GTTCCCGTCCAGTAATCG--------------TGGGG",
+      "GTTCCCGTCCAGTAATC-----------------GTGGGG",
+      "GTTCCCGTCCAGTAATC--GTGGGG",
+      "GTTCCCGTCCAGTAATCGT----GGGG",
+      "GTTCCCGTCCAGTAATCGT-----GGGG",
+      "GTTCCCGTCCAGTAATC-----------GTGGGG",
+      "GTTCCCGTCCAGTAATC------------GTGGGG",
+      "GTTCCCGTCCAGTAATCGTG-----GGG",
+      "GTTCCCGTCCAGTAATCGTG----------GGG",
+      "GTTCCCGTCCAGTAATCGTG----------------GGG",
+      "GTTCCCGTCCAGTAATCGTG----------------GGG",
+      "GTTCCCGTCCAGTAATC------------GTGGGG",
+      "GTTCCCGTCCAGTAATC---------------GTGGGG",
+      "GTTCCCGTCCAGTAATCGTG----------------GGG"
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  for (i in seq_len(nrow(rules))) {
+    idx <- which(d$align == rules$align_from[[i]] &
+                   d$mutation == rules$mutation_from[[i]])
+    if (length(idx) > 0L) d$align[idx] <- rules$align_to[[i]]
+  }
+
+  idx <- which(d$align == "GTTCCCGTCCAGTAATCGTGGGG" &
+                 d$mutation == "GTTCCCGTCCAGTAATCG---GG")
+  if (length(idx) > 0L) d$mutation[idx] <- "GTTCCCGTCCAGTAATC---GGG"
+  d
+}
+
+collapse_hgrna_A21_legacy_to_alleles <- function(cell_level_barcode) {
+  cols <- legacy_hgrna_column_set(cell_level_barcode)
+  d <- data.frame(
+    mutation = legacy_mutation_simplify(cell_level_barcode),
+    align = as.character(cell_level_barcode[, cols$align]),
+    stringsAsFactors = FALSE
+  )
+  d$mutation.report <- vapply(seq_len(nrow(d)), function(i) {
+    legacy_make_mutation_report(d$mutation[[i]], d$align[[i]])
+  }, character(1))
+
+  d <- d %>%
+    dplyr::group_by(mutation, align, mutation.report) %>%
+    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+    as.data.frame()
+  d <- d[order(d$n, decreasing = TRUE), , drop = FALSE]
+  d <- legacy_apply_A21_alignment_rules(d)
+
+  d$mutation.report <- vapply(seq_len(nrow(d)), function(i) {
+    legacy_make_mutation_report(d$mutation[[i]], d$align[[i]])
+  }, character(1))
+  d$node <- d$mutation
+  names(d)[names(d) == "mutation"] <- "read.short"
+  names(d)[names(d) == "align"] <- "align.short"
+  d[, c("node", "read.short", "align.short", "mutation.report", "n")]
+}
+
+mutation_symbol_make <- function(read_short, align_short) {
+  vapply(seq_along(read_short), function(i) {
+    r <- strsplit(read_short[[i]], "", fixed = TRUE)[[1]]
+    a <- strsplit(align_short[[i]], "", fixed = TRUE)[[1]]
+    if (length(r) != length(a)) return(NA_character_)
+
+    paste0(vapply(seq_along(r), function(j) {
+      if (r[[j]] == a[[j]]) return("=")
+      if (r[[j]] == "-") return("-")
+      if (a[[j]] == "-") return(r[[j]])
+      r[[j]]
+    }, character(1)), collapse = "")
+  }, character(1))
+}
+
 make.mutation.report.matrix <- function(mutation.report, GuideRNA) {
   
   GuideRNA = paste0(GuideRNA,'GGG')
@@ -951,15 +1355,16 @@ make.mutation.report.matrix <- function(mutation.report, GuideRNA) {
           M[row, "actual"]   <- tok[4]
         }
         
-        ## miss / notinread: "a-b miss ..." or "a-b notinread ..."
-      } else if (tok[2] %in% c("del", "notinread")) {
+        ## deletion-like states: "a-b del ...", legacy "a-b miss ...",
+        ## or "a-b notinread ..."
+      } else if (tok[2] %in% c("del", "miss", "notinread")) {
         ab <- suppressWarnings(as.integer(strsplit(tok[1], "-", fixed = TRUE)[[1]]))
         if (length(ab) != 2 || anyNA(ab)) next
         a <- ab[1]; b <- ab[2]
         a <- max(1L, a); b <- min(spacer_len, b)
         if (a > b) next
         
-        type <- if (tok[2] == "del") "deletion" else "miss*"
+        type <- if (tok[2] %in% c("del", "miss")) "deletion" else "miss*"
         orig <- tok[3]
         for (k in a:b) {
           M[k, "mutation.type"] <- type
