@@ -43,7 +43,7 @@ git clone https://github.com/methodistsmab/LINEMAP-data-preprocessing.git
 cd LINEMAP-data-preprocessing/A21B25_hgRNA_lineage_pipeline_code
 ```
 
-All commands below should be run from `LINEMAP_source_code`.
+All commands below should be run from `A21B25_hgRNA_lineage_pipeline_code`.
 
 ## 3. Run The FASTQ Preprocessing Pipeline
 
