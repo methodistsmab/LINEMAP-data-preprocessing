@@ -48,7 +48,7 @@ After downloading this repository, run the commands below from the repository
 root directory.
 
 ```text
-updated_linemap_pipeline/
+MIT_KP_mouse_reproduce_code/
 ```
 
 Main scripts:
@@ -84,19 +84,19 @@ distance dictionaries used for cell-cell distance calculation.
 
 ```bash
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
-Rscript updated_linemap_pipeline/01_build_transition_inputs.R
+Rscript 01_build_transition_inputs.R
 ```
 
 Output directory:
 
 ```text
-updated_linemap_pipeline/outputs/
+outputs/
 ```
 
 Output file:
 
 ```text
-updated_linemap_pipeline/outputs/linemap_transition_inputs_fixed_all.rds
+outputs/linemap_transition_inputs_fixed_all.rds
 ```
 
 The output object stores:
@@ -125,23 +125,23 @@ Example for mouse `3522`:
 ```bash
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
 MOUSE_ID=3522 \
-Rscript updated_linemap_pipeline/02_build_one_mouse_save_list.R
+Rscript 02_build_one_mouse_save_list.R
 ```
 
 Output directory:
 
 ```text
-updated_linemap_pipeline/outputs/mouse_3522/
+outputs/mouse_3522/
 ```
 
 Output files:
 
 ```text
-updated_linemap_pipeline/outputs/mouse_3522/save_list_3522.rds
-updated_linemap_pipeline/outputs/mouse_3522/sample_3522.rds
-updated_linemap_pipeline/outputs/mouse_3522/sequence_3522.rds
-updated_linemap_pipeline/outputs/mouse_3522/distance_with_C0_3522.rds
-updated_linemap_pipeline/outputs/mouse_3522/cell_table_3522.csv
+outputs/mouse_3522/save_list_3522.rds
+outputs/mouse_3522/sample_3522.rds
+outputs/mouse_3522/sequence_3522.rds
+outputs/mouse_3522/distance_with_C0_3522.rds
+outputs/mouse_3522/cell_table_3522.csv
 ```
 
 The one-mouse list contains:
@@ -168,17 +168,17 @@ save_list[[mouse_id]]$colors
 To generate the three mouse-level tree plots for this example:
 
 ```bash
-SAVE_LIST_FILE=updated_linemap_pipeline/outputs/mouse_3522/save_list_3522.rds \
+SAVE_LIST_FILE=outputs/mouse_3522/save_list_3522.rds \
 MOUSE_ID=3522 \
-Rscript updated_linemap_pipeline/04_plot_from_save_list.R
+Rscript 04_plot_from_save_list.R
 ```
 
 This creates the one-mouse tree figures:
 
 ```text
-updated_linemap_pipeline/outputs/figures/3522/3522_dist_distance_matrix_clone_seperation.pdf
-updated_linemap_pipeline/outputs/figures/3522/3522_reconstructed_tree_UPGMA.pdf
-updated_linemap_pipeline/outputs/figures/3522/3522_reconstructed_tree_NJ.pdf
+outputs/figures/3522/3522_dist_distance_matrix_clone_seperation.pdf
+outputs/figures/3522/3522_reconstructed_tree_UPGMA.pdf
+outputs/figures/3522/3522_reconstructed_tree_NJ.pdf
 ```
 
 ## Optional: Rebuild Additional Mice One at a Time
@@ -189,15 +189,15 @@ the same script with a different single mouse ID:
 ```bash
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
 MOUSE_ID=3430 \
-Rscript updated_linemap_pipeline/02_build_one_mouse_save_list.R
+Rscript 02_build_one_mouse_save_list.R
 
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
 MOUSE_ID=3433 \
-Rscript updated_linemap_pipeline/02_build_one_mouse_save_list.R
+Rscript 02_build_one_mouse_save_list.R
 
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
 MOUSE_ID=3507 \
-Rscript updated_linemap_pipeline/02_build_one_mouse_save_list.R
+Rscript 02_build_one_mouse_save_list.R
 ```
 
 The script intentionally rebuilds one mouse at a time. This keeps resource use
@@ -208,7 +208,7 @@ memory use.
 Output directory for each mouse:
 
 ```text
-updated_linemap_pipeline/outputs/mouse_<MOUSE_ID>/
+outputs/mouse_<MOUSE_ID>/
 ```
 
 ## Step 3: Optional Combine One-Mouse Lists
@@ -217,19 +217,19 @@ If users rebuild multiple or all mice in Step 2, they can combine the one-mouse
 lists into one all-mouse `save_list`:
 
 ```bash
-Rscript updated_linemap_pipeline/03_combine_mouse_save_lists.R
+Rscript 03_combine_mouse_save_lists.R
 ```
 
 Output directory:
 
 ```text
-updated_linemap_pipeline/outputs/
+outputs/
 ```
 
 Output file:
 
 ```text
-updated_linemap_pipeline/outputs/save_list_all_mice_linemap.rds
+outputs/save_list_all_mice_linemap.rds
 ```
 
 Users can skip this step and use the provided all-mouse analysis object instead:
@@ -253,7 +253,7 @@ All-mouse inputs:
 One-mouse input from Step 2:
 
 ```text
-updated_linemap_pipeline/outputs/mouse_3522/save_list_3522.rds
+outputs/mouse_3522/save_list_3522.rds
 ```
 
 Generate the three tree plots for one mouse:
@@ -261,7 +261,7 @@ Generate the three tree plots for one mouse:
 ```bash
 SAVE_LIST_FILE=/path/to/save.list.04072026.RDS \
 MOUSE_ID=3522 \
-Rscript updated_linemap_pipeline/04_plot_from_save_list.R
+Rscript 04_plot_from_save_list.R
 ```
 
 This step does not require the raw KPTracer files.
@@ -269,15 +269,15 @@ This step does not require the raw KPTracer files.
 Output directory:
 
 ```text
-updated_linemap_pipeline/outputs/figures/3522/
+outputs/figures/3522/
 ```
 
 Output files:
 
 ```text
-updated_linemap_pipeline/outputs/figures/3522/3522_dist_distance_matrix_clone_seperation.pdf
-updated_linemap_pipeline/outputs/figures/3522/3522_reconstructed_tree_UPGMA.pdf
-updated_linemap_pipeline/outputs/figures/3522/3522_reconstructed_tree_NJ.pdf
+outputs/figures/3522/3522_dist_distance_matrix_clone_seperation.pdf
+outputs/figures/3522/3522_reconstructed_tree_UPGMA.pdf
+outputs/figures/3522/3522_reconstructed_tree_NJ.pdf
 ```
 
 To generate tree plots for every mouse stored in an all-mouse `save_list`, use:
@@ -285,13 +285,13 @@ To generate tree plots for every mouse stored in an all-mouse `save_list`, use:
 ```bash
 SAVE_LIST_FILE=/path/to/save.list.04072026.RDS \
 MOUSE_ID=ALL \
-Rscript updated_linemap_pipeline/04_plot_from_save_list.R
+Rscript 04_plot_from_save_list.R
 ```
 
 Batch output directory:
 
 ```text
-updated_linemap_pipeline/outputs/figures/<MOUSE_ID>/
+outputs/figures/<MOUSE_ID>/
 ```
 
 Very large mice may require more memory or C stack space during tree plotting.
@@ -313,7 +313,7 @@ Generate cross-mouse figures:
 ```bash
 SAVE_LIST_FILE=/path/to/save.list.04072026.RDS \
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
-Rscript updated_linemap_pipeline/05_cross_mouse_summary_figures.R
+Rscript 05_cross_mouse_summary_figures.R
 ```
 
 This script uses the all-mouse `save_list` plus the supporting annotation files
@@ -338,31 +338,31 @@ Only `celltype_height_boxplot.pdf` can be generated from the all-mouse
 Output directory:
 
 ```text
-updated_linemap_pipeline/outputs/cross_mouse_figures/
+outputs/cross_mouse_figures/
 ```
 
 Output files:
 
 ```text
-updated_linemap_pipeline/outputs/cross_mouse_figures/celltype_height_boxplot.pdf
+outputs/cross_mouse_figures/celltype_height_boxplot.pdf
 # UPGMA height by cell state
 
-updated_linemap_pipeline/outputs/cross_mouse_figures/UMAP_height2_all_cells.pdf
+outputs/cross_mouse_figures/UMAP_height2_all_cells.pdf
 # UMAP colored by UPGMA height
 
-updated_linemap_pipeline/outputs/cross_mouse_figures/Mesenchymal_zoom_UMAP.pdf
+outputs/cross_mouse_figures/Mesenchymal_zoom_UMAP.pdf
 # Mesenchymal cell-state UMAP zoom
 
-updated_linemap_pipeline/outputs/cross_mouse_figures/Early_EMT1_zoom_UMAP.pdf
+outputs/cross_mouse_figures/Early_EMT1_zoom_UMAP.pdf
 # Early EMT-1 UMAP zoom
 
-updated_linemap_pipeline/outputs/cross_mouse_figures/EMT_distribution_bymonth.pdf
+outputs/cross_mouse_figures/EMT_distribution_bymonth.pdf
 # Early EMT-1 height density by age
 
-updated_linemap_pipeline/outputs/cross_mouse_figures/Mesenchymal_distribution_bymonth.pdf
+outputs/cross_mouse_figures/Mesenchymal_distribution_bymonth.pdf
 # Early EMT-1 height histogram by age
 
-updated_linemap_pipeline/outputs/cross_mouse_figures/gene_height_correlation_examples.pdf
+outputs/cross_mouse_figures/gene_height_correlation_examples.pdf
 # Mesenchymal gene expression correlated with UPGMA height
 ```
 
