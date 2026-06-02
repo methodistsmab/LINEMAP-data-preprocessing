@@ -10,29 +10,7 @@ Starting from raw paired-end FASTQ files, the pipeline performs read filtering a
 
 The preprocessing output can also be used for downstream LINEMAP modeling, including two-time-point estimation of the hgRNA transition matrix `P`.
 
-## 1. Installation
 
-Install the required R packages:
-
-```r
-install.packages("devtools")
-devtools::install_github("hrbrmstr/waffle")
-
-install.packages("ggplot2")
-install.packages("dplyr")
-install.packages("RecordLinkage")
-install.packages("stringr")
-install.packages("igraph")
-install.packages("pracma")
-
-if (!require("BiocManager", quietly = TRUE)) {
-  install.packages("BiocManager")
-}
-
-BiocManager::install("amplican")
-BiocManager::install("ShortRead")
-BiocManager::install("Biostrings")
-```
 
 ## 2. Download The Code
 
