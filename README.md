@@ -127,9 +127,9 @@ directly run:
 
 ```bash
 Rscript estimate_transition_P.R \
-  --early_file d5/cell.read.d5.RData \
+  --early_file data/cell.read.d5.RData \
   --early_object cell.read.d5A21 \
-  --late_file d14/cell.read.d14.RData \
+  --late_file data/cell.read.d14.RData \
   --late_object cell.read.d14A21 \
   --target A21 \
   --selection min_cells \
