@@ -12,13 +12,4 @@ The preprocessing output can also be used for downstream LINEMAP modeling, inclu
 
 
 
-## 2. Download The Code
-
-Download or clone this repository, then enter the source-code folder:
-
-```bash
-git clone https://github.com/methodistsmab/LINEMAP-data-preprocessing.git
-
-```
-
 
