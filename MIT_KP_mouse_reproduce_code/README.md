@@ -71,11 +71,6 @@ Mouse-specific tumor groups, colors, intBC counts, and clonal thresholds are
 predefined in `mouse_configs_static.R`, so users do not need an extra
 configuration step.
 
-## Step 0: Use the reproduce code
-```bash
-git clone https://github.com/methodistsmab/LINEMAP-data-preprocessing.git
-cd LINEMAP-data-preprocessing/MIT_KP_mouse_reproduce_code
-```
 
 ## Step 1: Build Transition Inputs
 
@@ -360,7 +355,7 @@ outputs/cross_mouse_figures/EMT_distribution_bymonth.pdf
 # Early EMT-1 height density by age
 
 outputs/cross_mouse_figures/Mesenchymal_distribution_bymonth.pdf
-# Early EMT-1 height histogram by age
+# Mesenchymal-1/Mesenchymal-1 (Met) height histogram by age
 
 outputs/cross_mouse_figures/gene_height_correlation_examples.pdf
 # Mesenchymal gene expression correlated with UPGMA height
