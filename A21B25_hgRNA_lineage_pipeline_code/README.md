@@ -1,6 +1,6 @@
 # A21B25 hgRNA lineage pipeline
 
-## 1. Use pipepline code
+## 0. Use pipepline code
 
 Download or clone this repository, then enter the source-code folder:
 
@@ -10,6 +10,31 @@ cd LINEMAP-data-preprocessing/A21B25_hgRNA_lineage_pipeline_code
 ```
 
 All commands below should be run from `A21B25_hgRNA_lineage_pipeline_code`.
+
+
+## 1. R package installation
+
+Install the required R packages:
+
+```r
+install.packages("devtools")
+devtools::install_github("hrbrmstr/waffle")
+
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("RecordLinkage")
+install.packages("stringr")
+install.packages("igraph")
+install.packages("pracma")
+
+if (!require("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+
+BiocManager::install("amplican")
+BiocManager::install("ShortRead")
+BiocManager::install("Biostrings")
+```
 
 ## 2. Run The FASTQ Preprocessing Pipeline
 
