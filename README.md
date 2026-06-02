@@ -6,7 +6,7 @@ independent modules, each with its own README and workflow instructions.
 
 ## Code Modules
 
-### `A21B25_hgRNA_lineage_pipeline`
+### `A21B25_hgRNA_lineage_pipeline_code`
 
 This module processes CRISPR-based lineage tracing sequencing data generated
 from the A21B25 PyMT-Cas9 tracing cell line. Starting from paired-end FASTQ
@@ -15,7 +15,7 @@ annotation, and cell-level hgRNA barcode assignment for the A21 and B25 hgRNA
 barcodes. It also constructs mutation evolution networks and estimates the
 transition matrix `P` for the A21 hgRNA barcode.
 
-### `MIT_KP_mouse_reprodce_code`
+### `MIT_KP_mouse_reproduce_code`
 
 This module reproduces the MIT/KPTracer mouse lineage tracing analysis using
 public KPTracer data. It estimates sgRNA transition matrices, builds distance
