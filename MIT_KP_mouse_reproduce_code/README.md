@@ -1,3 +1,4 @@
+
 # MIT/KPTracer Mouse Data Reproducibility
 
 This README describes the LINEMAP workflow used for the MIT/KPTracer mouse
@@ -69,6 +70,12 @@ calculation, and tree reconstruction.
 Mouse-specific tumor groups, colors, intBC counts, and clonal thresholds are
 predefined in `mouse_configs_static.R`, so users do not need an extra
 configuration step.
+
+## Step 0: Use the reproduce code
+```bash
+git clone https://github.com/methodistsmab/LINEMAP-data-preprocessing.git
+cd LINEMAP-data-preprocessing/MIT_KP_mouse_reproduce_code
+```
 
 ## Step 1: Build Transition Inputs
 
