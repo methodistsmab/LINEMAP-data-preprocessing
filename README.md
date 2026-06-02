@@ -40,7 +40,7 @@ Download or clone this repository, then enter the source-code folder:
 
 ```bash
 git clone https://github.com/methodistsmab/LINEMAP-data-preprocessing.git
-cd LINEMAP-data-preprocessing/LINEMAP_source_code
+cd LINEMAP-data-preprocessing/A21B25_hgRNA_lineage_pipeline_code
 ```
 
 All commands below should be run from `LINEMAP_source_code`.
