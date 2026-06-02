@@ -43,7 +43,7 @@ running scripts that rebuild from raw data.
 
 ## Code
 
-The analysis scripts are provided in the `updated_linemap_pipeline` folder.
+The analysis scripts are provided in the `MIT_KP_mouse_reproduce_code` folder.
 After downloading this repository, run the commands below from the repository
 root directory.
 
