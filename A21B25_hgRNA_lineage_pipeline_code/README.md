@@ -59,12 +59,13 @@ Example:
 Rscript LINEMAP_processing.R samples/sample_R1.fastq.gz samples/sample_R2.fastq.gz
 ```
 
-Sample FASTQ files:
+Simplified sample FASTQ files:
 
-```text
-https://ibrisk.houstonmethodist.org/LINEMAP/samples/sample_R1.fastq.gz
-https://ibrisk.houstonmethodist.org/LINEMAP/samples/sample_R2.fastq.gz
-```
+https://doi.org/10.5281/zenodo.20576933
+
+Full size sample FASTQ files:
+
+
 
 ## 3. Main Outputs
 
