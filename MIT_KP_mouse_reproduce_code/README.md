@@ -28,7 +28,7 @@ files should download `KPTracer-Data.tar.gz` from Zenodo.
 
 Our processed RDS files (LINEMAP_MIT_processed_analysis_objects.RDS) and intermediate analysis objects generated from the publicly available MIT KP-tracer mouse lineage tracing study, provided for reproducing the analyses presented in the manuscript.
 Download link:
-[https://zenodo.org/records/20576933](https://zenodo.org/records/20576933)
+[[https://zenodo.org/records/20576933](https://zenodo.org/records/20576933)](https://doi.org/10.5281/zenodo.20576933)
 
 ## Required Raw Files for Rebuilding
 
