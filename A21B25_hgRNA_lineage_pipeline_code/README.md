@@ -63,8 +63,7 @@ Simplified sample FASTQ files:
 
 https://doi.org/10.5281/zenodo.20576933
 
-Full size sample FASTQ files, download from GEO with id:
-GSE335072
+Full size sample FASTQ files, download from GEO with id: **GSE335072**
 
 
 ## 3. Main Outputs
