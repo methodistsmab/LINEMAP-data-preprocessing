@@ -230,7 +230,7 @@ outputs/save_list_all_mice_linemap.rds
 Users can skip this step and use the provided all-mouse analysis object instead:
 
 ```text
-save.list.04072026.RDS
+LINEMAP_MIT_processed_analysis_objects.RDS
 ```
 
 ## Step 4: Generate One-Mouse Tree Figures From an All-Mouse save_list
@@ -242,7 +242,7 @@ All-mouse inputs:
 
 ```text
 /path/to/save_list_all_mice_linemap.rds
-/path/to/save.list.04072026.RDS
+/path/to/LINEMAP_MIT_processed_analysis_objects.RDS
 ```
 
 One-mouse input from Step 2:
@@ -254,7 +254,7 @@ outputs/mouse_3522/save_list_3522.rds
 Generate the three tree plots for one mouse:
 
 ```bash
-SAVE_LIST_FILE=/path/to/save.list.04072026.RDS \
+SAVE_LIST_FILE=/path/to/LINEMAP_MIT_processed_analysis_objects.RDS \
 MOUSE_ID=3522 \
 Rscript 04_plot_from_save_list.R
 ```
@@ -278,7 +278,7 @@ outputs/figures/3522/3522_reconstructed_tree_NJ.pdf
 To generate tree plots for every mouse stored in an all-mouse `save_list`, use:
 
 ```bash
-SAVE_LIST_FILE=/path/to/save.list.04072026.RDS \
+SAVE_LIST_FILE=/path/to/LINEMAP_MIT_processed_analysis_objects.RDS \
 MOUSE_ID=ALL \
 Rscript 04_plot_from_save_list.R
 ```
@@ -300,13 +300,13 @@ Use either the combined object from Step 3 or the provided all-mouse object:
 
 ```text
 /path/to/save_list_all_mice_linemap.rds
-/path/to/save.list.04072026.RDS
+/path/to/LINEMAP_MIT_processed_analysis_objects.RDS
 ```
 
 Generate cross-mouse figures:
 
 ```bash
-SAVE_LIST_FILE=/path/to/save.list.04072026.RDS \
+SAVE_LIST_FILE=/path/to/LINEMAP_MIT_processed_analysis_objects.RDS \
 KPTRACER_DATA_DIR=/path/to/KPTracer-Data \
 Rscript 05_cross_mouse_summary_figures.R
 ```
